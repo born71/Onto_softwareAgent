@@ -1,4 +1,5 @@
 export interface UserProfile {
+  id?: string;
   name: string;
   currentRole: string;
   yearsOfExperience: number;
@@ -6,19 +7,4 @@ export interface UserProfile {
   preferredIndustry: string;
   workStyle: 'Remote' | 'Hybrid' | 'On-site' | 'Any';
   about: string;
-}
-
-export interface JobRecommendation {
-  companyName: string;
-  roleTitle: string;
-  matchScore: number;
-  salaryRange: string;
-  location: string;
-  reasoning: string;
-  keyRequirements: string[];
-  cultureFit: string;
-}
-
-export interface RecommendationsResponse {
-  recommendations: JobRecommendation[];
 }
