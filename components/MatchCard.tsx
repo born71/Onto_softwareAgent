@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { JobRecommendation } from '../types';
+import { JobMatch } from '../types';
 
 interface MatchCardProps {
-  job: JobRecommendation;
+  job: JobMatch;
   rank: number;
 }
 
@@ -43,8 +43,8 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
             </div>
             
             <div>
-              <h3 className="text-xl font-bold text-slate-900 leading-tight">{job.roleTitle}</h3>
-              <p className="text-slate-600 font-medium">{job.companyName}</p>
+              <h3 className="text-xl font-bold text-slate-900 leading-tight">{job.title}</h3>
+              <p className="text-slate-600 font-medium">{job.company}</p>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-500">
                 <span className="flex items-center gap-1">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -60,6 +60,17 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                   </svg>
                   {job.salaryRange}
                 </span>
+                {job.companySize && (
+                  <>
+                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                    <span className="flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {job.companySize}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -97,28 +108,79 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
       {/* Expanded Details */}
       {isExpanded && (
         <div className="px-5 pb-5 border-t border-slate-100 bg-slate-50/50 pt-4 animate-fadeIn">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Why It's a Match</h4>
-              <p className="text-slate-600 text-sm leading-relaxed mb-4">{job.reasoning}</p>
-              
-              <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Culture Check</h4>
-              <p className="text-slate-600 text-sm italic">"{job.cultureFit}"</p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Key Requirements Met</h4>
-              <div className="flex flex-wrap gap-2">
-                {job.keyRequirements.map((req, idx) => (
-                  <span key={idx} className="bg-white border border-slate-200 text-slate-600 text-xs font-medium px-2 py-1 rounded">
-                    ✓ {req}
-                  </span>
-                ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Job Description</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">{job.description}</p>
               </div>
               
-              <div className="mt-6 flex justify-end">
-                  <button className="bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors shadow-sm">
-                      Simulate Application
+              {job.matchReasons.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Why It's a Match</h4>
+                  <ul className="space-y-1">
+                    {job.matchReasons.map((reason, idx) => (
+                      <li key={idx} className="text-slate-600 text-sm flex items-start gap-2">
+                        <span className="text-green-500 mt-0.5 flex-shrink-0">•</span>
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700">Experience Match:</span>
+                <span className={`text-sm font-semibold px-2 py-1 rounded ${job.experienceMatch ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
+                  {job.experienceMatch ? '✓ Qualified' : '⚠ Close Match'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Required Skills</h4>
+                <div className="flex flex-wrap gap-2">
+                  {job.requiredSkills.map((skill, idx) => (
+                    <span key={idx} className="bg-white border border-slate-200 text-slate-600 text-xs font-medium px-2 py-1 rounded">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Work Style</h4>
+                <div className="flex flex-wrap gap-2">
+                  {job.workStyle.map((style, idx) => (
+                    <span key={idx} className="bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-2 py-1 rounded">
+                      {style}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {job.benefits && job.benefits.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Benefits</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {job.benefits.slice(0, 4).map((benefit, idx) => (
+                      <span key={idx} className="bg-green-50 border border-green-200 text-green-700 text-xs font-medium px-2 py-1 rounded">
+                        {benefit}
+                      </span>
+                    ))}
+                    {job.benefits.length > 4 && (
+                      <span className="text-xs text-slate-500 px-2 py-1">
+                        +{job.benefits.length - 4} more
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end pt-2">
+                  <button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
+                      View Full Details
                   </button>
               </div>
             </div>
