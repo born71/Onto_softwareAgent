@@ -131,12 +131,12 @@ export class OntologyRecommendationService {
 
   private getSkillImplications(skill: string): string[] {
     const skillData = this.findSkillData(skill);
-    return skillData?.subSkills?.map(s => s.toLowerCase()) || [];
+    return skillData?.subSkills?.map((s: string) => s.toLowerCase()) || [];
   }
 
   private getRelatedSkills(skill: string): string[] {
     const skillData = this.findSkillData(skill);
-    return skillData?.relatedSkills?.map(s => s.toLowerCase()) || [];
+    return skillData?.relatedSkills?.map((s: string) => s.toLowerCase()) || [];
   }
 
   private getTransferableSkills(skill: string): string[] {
