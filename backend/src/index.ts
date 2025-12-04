@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import routes from './routes/index.js';
+import { initDriver, closeDriver } from './config/database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,6 +18,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// Start server
+const startServer = async () => {
+  await initDriver();
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+  });
+};
+
+startServer();
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  await closeDriver();
+  process.exit(0);
 });

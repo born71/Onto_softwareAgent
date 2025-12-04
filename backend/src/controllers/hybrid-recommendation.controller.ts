@@ -1,29 +1,42 @@
 import { Request, Response } from 'express';
 import { RecommendationService } from '../services/recommendation.service.js';
 import { OntologyRecommendationService } from '../services/ontology-recommendation.service.js';
+import { Neo4jService } from '../services/neo4j.service.js';
 
 const recommendationService = new RecommendationService();
 const ontologyService = new OntologyRecommendationService();
+const neo4jService = new Neo4jService();
 
 export class HybridRecommendationController {
-  
+
+  // Seed the Neo4j database
+  async seedDatabase(req: Request, res: Response) {
+    try {
+      await neo4jService.seedDatabase();
+      res.json({ message: 'Database seeded successfully' });
+    } catch (error) {
+      console.error('Error seeding database:', error);
+      res.status(500).json({ error: 'Failed to seed database' });
+    }
+  }
+
   // Original rule-based recommendations
   async getRuleBased(req: Request, res: Response) {
     try {
       const profile = req.body;
-      
+
       // Basic validation
       if (!profile.skills || !Array.isArray(profile.skills)) {
         return res.status(400).json({ error: 'Skills array is required' });
       }
-      
+
       if (typeof profile.yearsOfExperience !== 'number') {
         return res.status(400).json({ error: 'Years of experience must be a number' });
       }
 
       console.log('\n🔧 RULE-BASED RECOMMENDATION ENGINE');
       const recommendations = await recommendationService.getRecommendations(profile);
-      
+
       res.json({
         type: 'rule-based',
         recommendations,
@@ -52,18 +65,18 @@ export class HybridRecommendationController {
   async getOntologyBased(req: Request, res: Response) {
     try {
       const profile = req.body;
-      
+
       // Basic validation
       if (!profile.skills || !Array.isArray(profile.skills)) {
         return res.status(400).json({ error: 'Skills array is required' });
       }
-      
+
       if (typeof profile.yearsOfExperience !== 'number') {
         return res.status(400).json({ error: 'Years of experience must be a number' });
       }
 
       const recommendations = await ontologyService.getOntologyRecommendations(profile);
-      
+
       res.json({
         type: 'ontology-based',
         recommendations,
@@ -73,7 +86,7 @@ export class HybridRecommendationController {
           currentRole: profile.currentRole
         },
         algorithm: {
-          name: 'Ontology-Based Semantic Matching',
+          name: 'Ontology-Based Semantic Matching (Neo4j)',
           weights: {
             semanticSkills: '50%',
             experience: '25%',
@@ -82,7 +95,7 @@ export class HybridRecommendationController {
           },
           features: [
             'Semantic skill relationships',
-            'Industry knowledge graphs', 
+            'Industry knowledge graphs',
             'Company culture matching',
             'Role transferability analysis'
           ]
@@ -98,18 +111,18 @@ export class HybridRecommendationController {
   async getHybrid(req: Request, res: Response) {
     try {
       const profile = req.body;
-      
+
       // Basic validation
       if (!profile.skills || !Array.isArray(profile.skills)) {
         return res.status(400).json({ error: 'Skills array is required' });
       }
-      
+
       if (typeof profile.yearsOfExperience !== 'number') {
         return res.status(400).json({ error: 'Years of experience must be a number' });
       }
 
       console.log('\n🔀 HYBRID RECOMMENDATION ENGINE - Running both approaches');
-      
+
       // Run both algorithms
       const [ruleBasedResults, ontologyResults] = await Promise.all([
         recommendationService.getRecommendations(profile),
@@ -118,7 +131,7 @@ export class HybridRecommendationController {
 
       // Combine and rank results
       const hybridResults = this.combineResults(ruleBasedResults, ontologyResults);
-      
+
       res.json({
         type: 'hybrid',
         recommendations: hybridResults,
@@ -147,18 +160,18 @@ export class HybridRecommendationController {
   async getComparison(req: Request, res: Response) {
     try {
       const profile = req.body;
-      
+
       // Basic validation
       if (!profile.skills || !Array.isArray(profile.skills)) {
         return res.status(400).json({ error: 'Skills array is required' });
       }
-      
+
       if (typeof profile.yearsOfExperience !== 'number') {
         return res.status(400).json({ error: 'Years of experience must be a number' });
       }
 
       console.log('\n📊 ALGORITHM COMPARISON - Running all approaches');
-      
+
       // Run all algorithms
       const [ruleBasedResults, ontologyResults] = await Promise.all([
         recommendationService.getRecommendations(profile),
@@ -166,7 +179,7 @@ export class HybridRecommendationController {
       ]);
 
       const hybridResults = this.combineResults(ruleBasedResults, ontologyResults);
-      
+
       res.json({
         type: 'comparison',
         profile: {
@@ -181,7 +194,7 @@ export class HybridRecommendationController {
             weights: { skills: '40%', experience: '30%', industry: '20%', workStyle: '10%' }
           },
           ontologyBased: {
-            algorithm: 'Ontology-Based Semantic Matching',
+            algorithm: 'Ontology-Based Semantic Matching (Neo4j)',
             count: ontologyResults.length,
             recommendations: ontologyResults.slice(0, 5), // Top 5
             weights: { semanticSkills: '50%', experience: '25%', industry: '15%', culture: '10%' }
@@ -202,7 +215,7 @@ export class HybridRecommendationController {
 
   private combineResults(ruleBasedResults: any[], ontologyResults: any[]): any[] {
     const combinedMap = new Map();
-    
+
     // Add rule-based results
     ruleBasedResults.forEach(job => {
       combinedMap.set(job.id, {
@@ -212,7 +225,7 @@ export class HybridRecommendationController {
         approaches: ['rule-based']
       });
     });
-    
+
     // Add or merge ontology results
     ontologyResults.forEach(job => {
       if (combinedMap.has(job.id)) {
@@ -236,7 +249,7 @@ export class HybridRecommendationController {
         });
       }
     });
-    
+
     // Convert to array and sort by hybrid score
     return Array.from(combinedMap.values())
       .sort((a, b) => b.matchScore - a.matchScore)
