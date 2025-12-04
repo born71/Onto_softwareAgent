@@ -150,6 +150,43 @@ export class Neo4jService {
     }
 
     /**
+   * Get all jobs from the database
+   */
+    async getAllJobs() {
+        const session = getSession();
+        try {
+            const result = await session.run(`
+        MATCH (j:Job)<-[:POSTED]-(c:Company)
+        OPTIONAL MATCH (j)-[:IN_INDUSTRY]->(i:Industry)
+        OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(s:Skill)
+        WITH j, c, i, collect(s.name) as skills
+        RETURN j.id as id, j.title as title, c.name as company, 
+               j.location as location, j.salaryRange as salaryRange,
+               i.name as industry, j.workStyle as workStyle,
+               j.description as description, skills
+        ORDER BY c.name, j.title
+      `);
+
+            return result.records.map(record => ({
+                id: record.get('id'),
+                title: record.get('title'),
+                company: record.get('company'),
+                location: record.get('location'),
+                salaryRange: record.get('salaryRange'),
+                industry: record.get('industry'),
+                workStyle: record.get('workStyle'),
+                description: record.get('description'),
+                requiredSkills: record.get('skills')
+            }));
+        } catch (error) {
+            console.error('Error fetching all jobs:', error);
+            throw error;
+        } finally {
+            await session.close();
+        }
+    }
+
+    /**
      * Find recommendations based on user profile using Graph algorithms
      */
     async findRecommendations(profile: UserProfile) {
@@ -164,7 +201,10 @@ export class Neo4jService {
             // 4. Experience check
 
             const query = `
-        WITH $userSkills as userSkills, $userIndustry as userIndustry, $userExp as userExp
+        WITH $userSkills as rawUserSkills, $userIndustry as userIndustry, $userExp as userExp
+        
+        // Normalize user skills to lowercase
+        WITH [s IN rawUserSkills | toLower(s)] as userSkills, userIndustry, userExp
 
         // Find jobs
         MATCH (j:Job)-[:POSTED]-(c:Company)
@@ -174,9 +214,9 @@ export class Neo4jService {
         OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(reqSkill:Skill)
         WITH j, c, i, userSkills, userIndustry, userExp, collect(reqSkill.name) as requiredSkills
         
-        // Calculate overlap
+        // Calculate overlap (Case Insensitive)
         WITH j, c, i, requiredSkills, userSkills, userIndustry, userExp,
-             [skill in requiredSkills WHERE skill IN userSkills] as directMatches
+             [skill in requiredSkills WHERE toLower(skill) IN userSkills] as directMatches
         
         // Calculate score components
         WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp,
@@ -190,7 +230,7 @@ export class Neo4jService {
         // Industry Match
         WITH j, c, i, requiredSkills, skillScore, userExp,
              CASE 
-               WHEN i.name = userIndustry THEN 1.0
+               WHEN toLower(i.name) = toLower(userIndustry) THEN 1.0
                WHEN (i)-[:HAS_SUB_INDUSTRY*]->(:Industry {name: userIndustry}) THEN 0.8
                WHEN (:Industry {name: userIndustry})-[:HAS_SUB_INDUSTRY*]->(i) THEN 0.8
                ELSE 0.0
@@ -208,7 +248,7 @@ export class Neo4jService {
         WITH j, c, i, requiredSkills, skillScore, industryScore, expScore,
              (skillScore * 0.5) + (industryScore * 0.2) + (expScore * 0.3) as matchScore
         
-        WHERE matchScore > 0.2 // Filter low matches
+        WHERE matchScore > 0.1 // Lower threshold to be more inclusive
         
         RETURN j.id as id, j.title as title, c.name as company, 
                j.location as location, j.salaryRange as salaryRange,

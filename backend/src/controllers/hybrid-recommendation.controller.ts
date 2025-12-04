@@ -20,6 +20,17 @@ export class HybridRecommendationController {
     }
   }
 
+  // Get all jobs from Neo4j
+  async getAllJobs(req: Request, res: Response) {
+    try {
+      const jobs = await neo4jService.getAllJobs();
+      res.json({ count: jobs.length, jobs });
+    } catch (error) {
+      console.error('Error getting all jobs:', error);
+      res.status(500).json({ error: 'Failed to get jobs' });
+    }
+  }
+
   // Original rule-based recommendations
   async getRuleBased(req: Request, res: Response) {
     try {

@@ -31,17 +31,17 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden hover:shadow-lg transition-shadow duration-300 mb-4">
       {/* Summary Header (Always visible) */}
-      <div 
+      <div
         className="p-5 cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start justify-between">
           <div className="flex gap-4">
-             {/* Rank Badge */}
+            {/* Rank Badge */}
             <div className="hidden md:flex flex-col items-center justify-center w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 font-bold text-xl">
               #{rank}
             </div>
-            
+
             <div>
               <h3 className="text-xl font-bold text-slate-900 leading-tight">{job.title}</h3>
               <p className="text-slate-600 font-medium">{job.company}</p>
@@ -76,31 +76,31 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
           </div>
 
           <div className="flex flex-col items-center">
-             <div className="relative w-14 h-14">
-               <svg className="w-full h-full -rotate-90">
-                 <circle
-                   cx="28"
-                   cy="28"
-                   r={radius}
-                   className="stroke-slate-200 fill-none"
-                   strokeWidth="4"
-                 />
-                 <circle
-                   cx="28"
-                   cy="28"
-                   r={radius}
-                   className={`${getRingColor(job.matchScore)} fill-none transition-all duration-1000 ease-out`}
-                   strokeWidth="4"
-                   strokeDasharray={circumference}
-                   strokeDashoffset={offset}
-                   strokeLinecap="round"
-                 />
-               </svg>
-               <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-700">
-                 {job.matchScore}%
-               </div>
-             </div>
-             <span className="text-[10px] font-semibold uppercase text-slate-400 mt-1">Match</span>
+            <div className="relative w-14 h-14">
+              <svg className="w-full h-full -rotate-90">
+                <circle
+                  cx="28"
+                  cy="28"
+                  r={radius}
+                  className="stroke-slate-200 fill-none"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="28"
+                  cy="28"
+                  r={radius}
+                  className={`${getRingColor(job.matchScore)} fill-none transition-all duration-1000 ease-out`}
+                  strokeWidth="4"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-700">
+                {(job.matchScore).toFixed(2)}%
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold uppercase text-slate-400 mt-1">Match</span>
           </div>
         </div>
       </div>
@@ -114,7 +114,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                 <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Job Description</h4>
                 <p className="text-slate-600 text-sm leading-relaxed">{job.description}</p>
               </div>
-              
+
               {job.matchReasons.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Why It's a Match</h4>
@@ -136,7 +136,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                 </span>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <h4 className="text-sm font-semibold text-slate-800 uppercase tracking-wider mb-2">Required Skills</h4>
@@ -177,32 +177,32 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex justify-end pt-2">
-                  <button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
-                      View Full Details
-                  </button>
+                <button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
+                  View Full Details
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      
-       {/* Expand Toggle Indication (Subtle) */}
-       <div 
-         onClick={() => setIsExpanded(!isExpanded)}
-         className={`h-6 flex items-center justify-center bg-slate-50 border-t border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors`}
-       >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className={`h-4 w-4 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-       </div>
+
+      {/* Expand Toggle Indication (Subtle) */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className={`h-6 flex items-center justify-center bg-slate-50 border-t border-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer transition-colors`}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className={`h-4 w-4 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
     </div>
   );
 };

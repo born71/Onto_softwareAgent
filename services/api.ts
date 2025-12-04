@@ -137,4 +137,24 @@ export const recommendationApi = {
     }
     return response.json();
   },
+
+  // Seed the database
+  async seedDatabase(): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/smart-recommendations/seed`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to seed database');
+    }
+    return response.json();
+  },
+
+  // Get all jobs (for testing)
+  async getAllJobs(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/smart-recommendations/jobs`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch jobs');
+    }
+    return response.json();
+  },
 };

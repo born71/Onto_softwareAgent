@@ -22,9 +22,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
         </div>
         <div className="text-right">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl font-bold text-green-600">{job.matchScore}%</span>
+            <span className="text-2xl font-bold text-green-600">{(job.matchScore).toFixed(2)}%</span>
             <div className="w-16 h-16 rounded-full flex items-center justify-center bg-green-50">
-              <div 
+              <div
                 className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"
                 style={{
                   background: `conic-gradient(#10b981 ${job.matchScore * 3.6}deg, #f1f5f9 0deg)`
@@ -87,8 +87,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
           <span className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2 block">Required Skills</span>
           <div className="flex flex-wrap gap-2">
             {job.requiredSkills.map((skill, index) => (
-              <span 
-                key={index} 
+              <span
+                key={index}
                 className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-xs font-medium"
               >
                 {skill}
@@ -102,8 +102,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2 block">Benefits</span>
             <div className="flex flex-wrap gap-2">
               {job.benefits.map((benefit, index) => (
-                <span 
-                  key={index} 
+                <span
+                  key={index}
                   className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-medium border border-green-200"
                 >
                   {benefit}

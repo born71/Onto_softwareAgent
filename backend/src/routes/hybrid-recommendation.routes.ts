@@ -15,5 +15,6 @@ router.post('/ontology-based', hybridController.getOntologyBased);
 router.post('/hybrid', hybridController.getHybrid);
 router.post('/compare', hybridController.getComparison);
 router.post('/seed', hybridController.seedDatabase);
+router.get('/jobs', hybridController.getAllJobs);
 
 export default router;
