@@ -176,7 +176,11 @@ export class Neo4jService {
                 industry: record.get('industry'),
                 workStyle: record.get('workStyle'),
                 description: record.get('description'),
-                requiredSkills: record.get('skills')
+                requiredSkills: record.get('skills'),
+                matchScore: 0,
+                matchReasons: [],
+                experienceMatch: false,
+                benefits: []
             }));
         } catch (error) {
             console.error('Error fetching all jobs:', error);

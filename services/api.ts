@@ -1,4 +1,4 @@
-import { UserProfile, RecommendationsResponse } from '../types';
+import { UserProfile, RecommendationsResponse, JobMatch } from '../types';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -152,6 +152,17 @@ export const recommendationApi = {
   // Get all jobs (for testing)
   async getAllJobs(): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/smart-recommendations/jobs`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch jobs');
+    }
+    return response.json();
+  },
+};
+
+export const jobApi = {
+  // Get all jobs
+  async getAll(): Promise<JobMatch[]> {
+    const response = await fetch(`${API_BASE_URL}/jobs`);
     if (!response.ok) {
       throw new Error('Failed to fetch jobs');
     }
