@@ -2,6 +2,7 @@ import { getSession } from '../config/database.js';
 import { mockJobs } from '../data/jobs.js';
 import { skillOntology, industryOntology, companyOntology, ontologyRules } from '../ontology/career-ontology.js';
 import { UserProfile } from '../types/index.js';
+import { TextProcessor } from '../utils/text-processor.js';
 
 export class Neo4jService {
 
@@ -204,11 +205,17 @@ export class Neo4jService {
             // 3. Industry matches
             // 4. Experience check
 
+            // Normalize user role
+            const normalizedRole = TextProcessor.normalizeJobTitle(profile.currentRole);
+            const roleKeywords = TextProcessor.extractKeywords(profile.currentRole);
+            console.log(`  Normalized Role: "${profile.currentRole}" -> "${normalizedRole}"`);
+            console.log(`  Role Keywords: ${JSON.stringify(roleKeywords)}`);
+
             const query = `
-        WITH $userSkills as rawUserSkills, $userIndustry as userIndustry, $userExp as userExp
+        WITH $userSkills as rawUserSkills, $userIndustry as userIndustry, $userExp as userExp, $roleKeywords as roleKeywords
         
         // Normalize user skills to lowercase
-        WITH [s IN rawUserSkills | toLower(s)] as userSkills, userIndustry, userExp
+        WITH [s IN rawUserSkills | toLower(s)] as userSkills, userIndustry, userExp, [k IN roleKeywords | toLower(k)] as roleKeywords
 
         // Find jobs
         MATCH (j:Job)-[:POSTED]-(c:Company)
@@ -216,23 +223,23 @@ export class Neo4jService {
         
         // Calculate Skill Score
         OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(reqSkill:Skill)
-        WITH j, c, i, userSkills, userIndustry, userExp, collect(reqSkill.name) as requiredSkills
+        WITH j, c, i, userSkills, userIndustry, userExp, roleKeywords, collect(reqSkill.name) as requiredSkills
         
         // Calculate overlap (Case Insensitive)
-        WITH j, c, i, requiredSkills, userSkills, userIndustry, userExp,
+        WITH j, c, i, requiredSkills, userSkills, userIndustry, userExp, roleKeywords,
              [skill in requiredSkills WHERE toLower(skill) IN userSkills] as directMatches
         
         // Calculate score components
-        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp,
+        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp, roleKeywords,
              size(directMatches) as directMatchCount,
              size(requiredSkills) as totalRequired
              
         // Basic Skill Score (Direct)
-        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp,
+        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp, roleKeywords,
              CASE WHEN totalRequired > 0 THEN toFloat(directMatchCount) / totalRequired ELSE 0 END as skillScore
 
         // Industry Match
-        WITH j, c, i, requiredSkills, skillScore, userExp,
+        WITH j, c, i, requiredSkills, skillScore, userExp, roleKeywords,
              CASE 
                WHEN toLower(i.name) = toLower(userIndustry) THEN 1.0
                WHEN (i)-[:HAS_SUB_INDUSTRY*]->(:Industry {name: userIndustry}) THEN 0.8
@@ -241,16 +248,26 @@ export class Neo4jService {
              END as industryScore
              
         // Experience Match
-        WITH j, c, i, requiredSkills, skillScore, industryScore,
+        WITH j, c, i, requiredSkills, skillScore, industryScore, roleKeywords,
              CASE 
                WHEN userExp >= j.requiredExperience THEN 1.0
                WHEN userExp >= j.requiredExperience * 0.7 THEN 0.5
                ELSE 0.0
              END as expScore
 
-        // Final Weighted Score
+        // Role Match (New Component)
+        // Check if job title contains any of the user's role keywords
         WITH j, c, i, requiredSkills, skillScore, industryScore, expScore,
-             (skillScore * 0.5) + (industryScore * 0.2) + (expScore * 0.3) as matchScore
+             [word IN roleKeywords WHERE toLower(j.title) CONTAINS word] as titleMatches
+        
+        WITH j, c, i, requiredSkills, skillScore, industryScore, expScore,
+             size(titleMatches) > 0 as hasTitleMatch,
+             size(titleMatches) as titleMatchCount
+
+        // Final Weighted Score
+        // Added role match bonus (0.2)
+        WITH j, c, i, requiredSkills, skillScore, industryScore, expScore, hasTitleMatch,
+             (skillScore * 0.4) + (industryScore * 0.2) + (expScore * 0.2) + (CASE WHEN hasTitleMatch THEN 0.2 ELSE 0.0 END) as matchScore
         
         WHERE matchScore > 0.1 // Lower threshold to be more inclusive
         
@@ -262,7 +279,8 @@ export class Neo4jService {
                requiredSkills,
                skillScore * 100 as skillSemanticScore,
                industryScore * 100 as industrySemanticScore,
-               expScore * 100 as experienceScore
+               expScore * 100 as experienceScore,
+               hasTitleMatch
         ORDER BY matchScore DESC
         LIMIT 10
       `;
@@ -270,7 +288,8 @@ export class Neo4jService {
             const result = await session.run(query, {
                 userSkills: profile.skills,
                 userIndustry: profile.preferredIndustry,
-                userExp: profile.yearsOfExperience
+                userExp: profile.yearsOfExperience,
+                roleKeywords: roleKeywords
             });
 
             return result.records.map(record => ({
@@ -290,7 +309,8 @@ export class Neo4jService {
                 matchReasons: this.generateReasons(
                     record.get('skillSemanticScore'),
                     record.get('industrySemanticScore'),
-                    record.get('experienceScore')
+                    record.get('experienceScore'),
+                    record.get('hasTitleMatch')
                 ),
                 experienceMatch: record.get('experienceScore') >= 70,
                 ontologyReasons: ['Matched via Neo4j Graph Analysis']
@@ -304,11 +324,12 @@ export class Neo4jService {
         }
     }
 
-    private generateReasons(skillScore: number, industryScore: number, expScore: number): string[] {
+    private generateReasons(skillScore: number, industryScore: number, expScore: number, hasTitleMatch: boolean): string[] {
         const reasons = [];
         if (skillScore > 70) reasons.push('Strong skill match');
         if (industryScore > 80) reasons.push('Industry alignment');
         if (expScore > 90) reasons.push('Experience requirement met');
+        if (hasTitleMatch) reasons.push('Job title matches your current role');
         return reasons;
     }
 }
