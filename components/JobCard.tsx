@@ -22,12 +22,16 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
         </div>
         <div className="text-right">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl font-bold text-green-600">{(job.matchScore).toFixed(2)}%</span>
-            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-green-50">
+            <span className={`text-2xl font-bold ${job.matchScore >= 71 ? 'text-green-600' :
+              job.matchScore >= 26 ? 'text-yellow-500' : 'text-red-600'
+              }`}>{(job.matchScore).toFixed(2)}%</span>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-slate-50">
               <div
-                className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center"
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500"
                 style={{
-                  background: `conic-gradient(#10b981 ${job.matchScore * 3.6}deg, #f1f5f9 0deg)`
+                  background: `conic-gradient(${job.matchScore >= 71 ? '#10b981' :
+                    job.matchScore >= 26 ? '#facc15' : '#ef4444'
+                    } ${job.matchScore * 3.6}deg, #f1f5f9 0deg)`
                 }}
               >
                 <div className="w-8 h-8 bg-white rounded-full"></div>

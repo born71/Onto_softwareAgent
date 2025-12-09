@@ -6,6 +6,7 @@ export interface UserProfile {
   skills: string[];
   preferredIndustry: string;
   workStyle: 'Remote' | 'Hybrid' | 'On-site' | 'Any';
+  expectedSalary: number;
   about: string;
 }
 

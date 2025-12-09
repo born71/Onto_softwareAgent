@@ -19,20 +19,16 @@ export interface JobMatch {
 }
 
 export class RecommendationService {
-  
+
   /**
    * Calculate skill match percentage
    */
   private calculateSkillMatch(userSkills: string[], jobSkills: string[], jobTitle?: string): number {
-    console.log(`\n🔍 Analyzing skills for: ${jobTitle || 'Job'}`);
-    console.log(`👤 User skills: [${userSkills.join(', ')}]`);
-    console.log(`💼 Job requirements: [${jobSkills.join(', ')}]`);
-    
     const userSkillsLower = userSkills.map(skill => skill.toLowerCase());
     const jobSkillsLower = jobSkills.map(skill => skill.toLowerCase());
-    
+
     const matchingSkills = jobSkillsLower.filter(jobSkill => {
-      const isMatch = userSkillsLower.some(userSkill => 
+      const isMatch = userSkillsLower.some(userSkill =>
         userSkill.includes(jobSkill) || jobSkill.includes(userSkill)
       );
       if (isMatch) {
@@ -42,10 +38,10 @@ export class RecommendationService {
       }
       return isMatch;
     });
-    
+
     const skillScore = jobSkillsLower.length > 0 ? (matchingSkills.length / jobSkillsLower.length) * 100 : 0;
     console.log(`📊 Skill match score: ${skillScore.toFixed(1)}% (${matchingSkills.length}/${jobSkillsLower.length} skills matched)`);
-    
+
     return skillScore;
   }
 
@@ -54,7 +50,7 @@ export class RecommendationService {
    */
   private calculateExperienceMatch(userExperience: number, requiredExperience: number): number {
     console.log(`👔 Experience check: User has ${userExperience} years, Job requires ${requiredExperience} years`);
-    
+
     let experienceScore = 0;
     if (userExperience >= requiredExperience) {
       experienceScore = 100;
@@ -67,7 +63,7 @@ export class RecommendationService {
       experienceScore = 0;
       console.log(`  ❌ Experience match: 0% (below 70% threshold)`);
     }
-    
+
     return experienceScore;
   }
 
@@ -76,10 +72,10 @@ export class RecommendationService {
    */
   private calculateIndustryMatch(userIndustry: string, jobIndustry: string): number {
     console.log(`🏢 Industry check: User prefers "${userIndustry}", Job is in "${jobIndustry}"`);
-    
+
     const userIndustryLower = userIndustry.toLowerCase();
     const jobIndustryLower = jobIndustry.toLowerCase();
-    
+
     let industryScore = 0;
     if (userIndustryLower === jobIndustryLower) {
       industryScore = 100;
@@ -91,7 +87,7 @@ export class RecommendationService {
       industryScore = 0;
       console.log(`  ❌ No industry match: 0%`);
     }
-    
+
     return industryScore;
   }
 
@@ -100,7 +96,7 @@ export class RecommendationService {
    */
   private calculateWorkStyleMatch(userWorkStyle: string, jobWorkStyles: string[]): number {
     console.log(`🏠 Work style check: User wants "${userWorkStyle}", Job offers [${jobWorkStyles.join(', ')}]`);
-    
+
     let workStyleScore = 0;
     if (userWorkStyle === 'Any' || jobWorkStyles.includes('Any')) {
       workStyleScore = 100;
@@ -112,47 +108,44 @@ export class RecommendationService {
       workStyleScore = 0;
       console.log(`  ❌ Work style match: 0% (preference not available)`);
     }
-    
+
     return workStyleScore;
   }
 
-  /**
-   * Generate match reasons
-   */
   private generateMatchReasons(
-    skillMatch: number, 
-    experienceMatch: number, 
-    industryMatch: number, 
+    skillMatch: number,
+    experienceMatch: number,
+    industryMatch: number,
     workStyleMatch: number,
     userSkills: string[],
     jobSkills: string[]
   ): string[] {
     const reasons: string[] = [];
-    
+
     if (skillMatch >= 60) {
-      const matchingSkills = jobSkills.filter(jobSkill => 
-        userSkills.some(userSkill => 
-          userSkill.toLowerCase().includes(jobSkill.toLowerCase()) || 
+      const matchingSkills = jobSkills.filter(jobSkill =>
+        userSkills.some(userSkill =>
+          userSkill.toLowerCase().includes(jobSkill.toLowerCase()) ||
           jobSkill.toLowerCase().includes(userSkill.toLowerCase())
         )
       );
       reasons.push(`Strong skill match: ${matchingSkills.slice(0, 3).join(', ')}`);
     }
-    
+
     if (experienceMatch >= 100) {
       reasons.push('Meets experience requirements');
     } else if (experienceMatch >= 70) {
       reasons.push('Close to experience requirements');
     }
-    
+
     if (industryMatch >= 80) {
       reasons.push('Perfect industry fit');
     }
-    
+
     if (workStyleMatch >= 100) {
       reasons.push('Work style preference match');
     }
-    
+
     return reasons;
   }
 
@@ -160,18 +153,12 @@ export class RecommendationService {
    * Get job recommendations for a user
    */
   async getRecommendations(profile: UserProfile): Promise<JobMatch[]> {
-    console.log(`\n🚀 Starting job recommendation analysis for: ${profile.name}`);
-    console.log(`📋 Profile summary: ${profile.currentRole} with ${profile.yearsOfExperience} years experience`);
-    console.log(`🎯 Looking for: ${profile.preferredIndustry} industry, ${profile.workStyle} work style`);
-    console.log(`💪 Skills: [${profile.skills.join(', ')}]`);
-    console.log(`\n📊 Analyzing ${mockJobs.length} available positions...\n`);
-    
     const recommendations: JobMatch[] = [];
 
     for (const job of mockJobs) {
       console.log(`\n${'='.repeat(80)}`);
       console.log(`🏢 Evaluating: ${job.title} at ${job.company}`);
-      
+
       // Calculate different match scores
       const skillMatch = this.calculateSkillMatch(profile.skills, job.requiredSkills, `${job.title} at ${job.company}`);
       const experienceMatch = this.calculateExperienceMatch(profile.yearsOfExperience, job.requiredExperience);
@@ -186,17 +173,10 @@ export class RecommendationService {
         (workStyleMatch * 0.1) // 10% weight on work style
       );
 
-      console.log(`\n🧮 Final Calculation:`);
-      console.log(`  Skills: ${skillMatch.toFixed(1)}% × 0.4 = ${(skillMatch * 0.4).toFixed(1)}`);
-      console.log(`  Experience: ${experienceMatch.toFixed(1)}% × 0.3 = ${(experienceMatch * 0.3).toFixed(1)}`);
-      console.log(`  Industry: ${industryMatch.toFixed(1)}% × 0.2 = ${(industryMatch * 0.2).toFixed(1)}`);
-      console.log(`  Work Style: ${workStyleMatch.toFixed(1)}% × 0.1 = ${(workStyleMatch * 0.1).toFixed(1)}`);
-      console.log(`  🎯 TOTAL SCORE: ${overallScore}%`);
-
       // Only include jobs with reasonable match (>= 30%)
       if (overallScore >= 30) {
         console.log(`  ✅ QUALIFIED - Adding to recommendations`);
-        
+
         const matchReasons = this.generateMatchReasons(
           skillMatch, experienceMatch, industryMatch, workStyleMatch,
           profile.skills, job.requiredSkills
@@ -228,16 +208,12 @@ export class RecommendationService {
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 10);
 
-    console.log(`\n${'='.repeat(80)}`);
-    console.log(`🏆 FINAL RESULTS: Found ${recommendations.length} qualifying positions`);
-    console.log(`📈 Returning top ${sortedRecommendations.length} recommendations:`);
-    
     sortedRecommendations.forEach((rec, index) => {
       console.log(`  ${index + 1}. ${rec.title} at ${rec.company} - ${rec.matchScore}%`);
     });
-    
+
     console.log(`\n✅ Analysis complete!\n`);
-    
+
     return sortedRecommendations;
   }
 }

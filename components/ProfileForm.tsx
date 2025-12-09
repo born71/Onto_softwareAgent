@@ -10,13 +10,13 @@ interface ProfileFormProps {
   isLoading: boolean;
 }
 
-const ProfileForm: React.FC<ProfileFormProps> = ({ 
-  onSubmit, 
-  onGetRecommendations, 
+const ProfileForm: React.FC<ProfileFormProps> = ({
+  onSubmit,
+  onGetRecommendations,
   onGetComparison,
   selectedAlgorithm = 'ontology-based',
   onAlgorithmChange,
-  isLoading 
+  isLoading
 }) => {
   const [formData, setFormData] = useState<UserProfile>({
     name: '',
@@ -25,6 +25,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     skills: [],
     preferredIndustry: 'Technology',
     workStyle: 'Hybrid',
+    expectedSalary: 100000,
     about: ''
   });
   const [currentSkill, setCurrentSkill] = useState('');
@@ -33,7 +34,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'yearsOfExperience' ? parseInt(value) || 0 : value
+      [name]: name === 'yearsOfExperience' || name === 'expectedSalary' ? parseInt(value) || 0 : value
     }));
   };
 
@@ -74,9 +75,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         </svg>
         Your Profile
       </h2>
-      
+
       <form onSubmit={handleSubmit} className="space-y-5">
-        
+
         {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -106,7 +107,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-           <div>
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Years of Experience</label>
             <input
               type="number"
@@ -120,32 +121,58 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             />
           </div>
           <div>
-             <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Work Style</label>
-             <select
-                name="workStyle"
-                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white"
-                value={formData.workStyle}
-                onChange={handleInputChange}
-             >
-                <option value="Remote">Remote</option>
-                <option value="Hybrid">Hybrid</option>
-                <option value="On-site">On-site</option>
-                <option value="Any">Any</option>
-             </select>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Preferred Work Style</label>
+            <select
+              name="workStyle"
+              className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors bg-white"
+              value={formData.workStyle}
+              onChange={handleInputChange}
+            >
+              <option value="Remote">Remote</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="On-site">On-site</option>
+              <option value="Any">Any</option>
+            </select>
+          </div>
+        </div>
+
+
+        {/* Salary Expectation */}
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-sm font-medium text-slate-700">Expected Salary (Annual)</label>
+            <span className="text-sm font-bold text-indigo-600">
+              ${formData.expectedSalary?.toLocaleString() || 0}+
+            </span>
+          </div>
+          <input
+            type="range"
+            name="expectedSalary"
+            min="0"
+            max="300000"
+            step="5000"
+            className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+            value={formData.expectedSalary || 0}
+            onChange={handleInputChange}
+          />
+          <div className="flex justify-between text-xs text-slate-400 mt-1">
+            <span>$0</span>
+            <span>$150k</span>
+            <span>$300k+</span>
           </div>
         </div>
 
         {/* Industry */}
         <div>
-           <label className="block text-sm font-medium text-slate-700 mb-1">Target Industry</label>
-           <input
-             type="text"
-             name="preferredIndustry"
-             className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
-             placeholder="e.g. Fintech, Healthcare, E-commerce"
-             value={formData.preferredIndustry}
-             onChange={handleInputChange}
-           />
+          <label className="block text-sm font-medium text-slate-700 mb-1">Target Industry</label>
+          <input
+            type="text"
+            name="preferredIndustry"
+            className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+            placeholder="e.g. Fintech, Healthcare, E-commerce"
+            value={formData.preferredIndustry}
+            onChange={handleInputChange}
+          />
         </div>
 
         {/* Skills */}
@@ -206,7 +233,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             disabled={isLoading}
             className={`w-full py-3 px-6 rounded-xl text-white font-semibold shadow-lg transform transition-all duration-200 
               ${isLoading
-                ? 'bg-slate-400 cursor-not-allowed' 
+                ? 'bg-slate-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 hover:shadow-xl hover:-translate-y-1 active:translate-y-0'
               }`}
           >
@@ -227,7 +254,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             disabled={isLoading || formData.skills.length === 0}
             className={`w-full py-3 px-6 rounded-xl text-white font-bold text-lg shadow-lg transform transition-all duration-200 
               ${isLoading || formData.skills.length === 0
-                ? 'bg-slate-400 cursor-not-allowed' 
+                ? 'bg-slate-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:shadow-xl hover:-translate-y-1 active:translate-y-0'
               }`}
           >
@@ -239,11 +266,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </svg>
                 Finding Jobs...
               </span>
-            ) : 'Get Job Recommendations'}
+            ) : 'Find Jobs'}
           </button>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 

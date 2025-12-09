@@ -34,12 +34,10 @@ export class OntologyRecommendationService {
    * Get ontology-based job recommendations using Neo4j
    */
   async getOntologyRecommendations(profile: UserProfile): Promise<OntologyJobMatch[]> {
-    console.log(`\n🧠 ONTOLOGY RECOMMENDATION ENGINE STARTED (Neo4j Powered)`);
-    console.log(`🎯 Analyzing profile: ${profile.name} - ${profile.currentRole}`);
-
     try {
       const results = await this.neo4jService.findRecommendations(profile);
 
+      console.log('show This')
       // Map Neo4j results to expected interface
       return results.map(rec => ({
         ...rec,

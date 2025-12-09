@@ -197,8 +197,6 @@ export class Neo4jService {
     async findRecommendations(profile: UserProfile) {
         const session = getSession();
         try {
-            console.log(`\n🧠 NEO4J: Finding recommendations for ${profile.name}`);
-
             // Complex Cypher query to find matching jobs
             // 1. Direct skill matches
             // 2. Indirect skill matches (sub-skills, related skills)
@@ -208,8 +206,6 @@ export class Neo4jService {
             // Normalize user role
             const normalizedRole = TextProcessor.normalizeJobTitle(profile.currentRole);
             const roleKeywords = TextProcessor.extractKeywords(profile.currentRole);
-            console.log(`  Normalized Role: "${profile.currentRole}" -> "${normalizedRole}"`);
-            console.log(`  Role Keywords: ${JSON.stringify(roleKeywords)}`);
 
             const query = `
         WITH $userSkills as rawUserSkills, $userIndustry as userIndustry, $userExp as userExp, $roleKeywords as roleKeywords

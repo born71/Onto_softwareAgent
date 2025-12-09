@@ -165,8 +165,8 @@ function App() {
             <button
               onClick={() => setViewMode('profiles')}
               className={`py-3 px-1 border-b-2 font-medium text-sm ${viewMode === 'profiles'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Manage Profiles
@@ -174,8 +174,8 @@ function App() {
             <button
               onClick={() => setViewMode('recommendations')}
               className={`py-3 px-1 border-b-2 font-medium text-sm ${viewMode === 'recommendations'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Job Recommendations
@@ -183,8 +183,8 @@ function App() {
             <button
               onClick={handleViewAllJobs}
               className={`py-3 px-1 border-b-2 font-medium text-sm ${viewMode === 'all-jobs'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               All Jobs
@@ -198,7 +198,7 @@ function App() {
         <div className="flex flex-col lg:flex-row gap-8 h-full">
 
           {/* Left Column: Input */}
-          <div className="w-full lg:w-1/3 lg:sticky lg:top-24 h-fit">
+          <div className="w-full lg:w-1/3 lg:sticky lg:top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
             <ProfileForm
               onSubmit={handleProfileSubmit}
               onGetRecommendations={handleGetRecommendations}
