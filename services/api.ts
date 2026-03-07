@@ -63,9 +63,9 @@ export const profileApi = {
 };
 
 export const recommendationApi = {
-  // Get job recommendations for a profile (original rule-based)
+  // Get job recommendations for a profile
   async getRecommendations(profile: UserProfile): Promise<RecommendationsResponse> {
-    const response = await fetch(`${API_BASE_URL}/recommendations/match`, {
+    const response = await fetch(`${API_BASE_URL}/smart-recommendations/match`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -74,77 +74,6 @@ export const recommendationApi = {
     });
     if (!response.ok) {
       throw new Error('Failed to get recommendations');
-    }
-    return response.json();
-  },
-
-  // Rule-based recommendations
-  async getRuleBased(profile: UserProfile): Promise<RecommendationsResponse> {
-    const response = await fetch(`${API_BASE_URL}/smart-recommendations/rule-based`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profile),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get rule-based recommendations');
-    }
-    return response.json();
-  },
-
-  // Ontology-based recommendations
-  async getOntologyBased(profile: UserProfile): Promise<RecommendationsResponse> {
-    const response = await fetch(`${API_BASE_URL}/smart-recommendations/ontology-based`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profile),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get ontology recommendations');
-    }
-    return response.json();
-  },
-
-  // Hybrid recommendations
-  async getHybrid(profile: UserProfile): Promise<RecommendationsResponse> {
-    const response = await fetch(`${API_BASE_URL}/smart-recommendations/hybrid`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profile),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get hybrid recommendations');
-    }
-    return response.json();
-  },
-
-  // Compare all approaches
-  async getComparison(profile: UserProfile): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/smart-recommendations/compare`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profile),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to get comparison results');
-    }
-    return response.json();
-  },
-
-  // Seed the database
-  async seedDatabase(): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/smart-recommendations/seed`, {
-      method: 'POST',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to seed database');
     }
     return response.json();
   },

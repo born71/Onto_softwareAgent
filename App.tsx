@@ -9,8 +9,7 @@ interface UserProfileWithId extends UserProfile {
   id?: string;
 }
 
-type ViewMode = 'profiles' | 'recommendations' | 'comparison' | 'all-jobs';
-type AlgorithmType = 'rule-based' | 'ontology-based' | 'hybrid';
+type ViewMode = 'profiles' | 'recommendations' | 'all-jobs';
 
 function App() {
   const [profiles, setProfiles] = useState<UserProfileWithId[]>([]);
@@ -21,8 +20,6 @@ function App() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('profiles');
   const [recommendationData, setRecommendationData] = useState<RecommendationsResponse | null>(null);
-  const [selectedAlgorithm, setSelectedAlgorithm] = useState<AlgorithmType>('ontology-based');
-  const [comparisonData, setComparisonData] = useState<any>(null);
 
   // Load profiles on mount
   useEffect(() => {
@@ -73,29 +70,14 @@ function App() {
     }
   };
 
-  const handleGetRecommendations = async (profile: UserProfile, algorithm?: AlgorithmType) => {
+  const handleGetRecommendations = async (profile: UserProfile) => {
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
     setViewMode('recommendations');
 
-    const algorithmToUse = algorithm || selectedAlgorithm;
-
     try {
-      let data;
-      switch (algorithmToUse) {
-        case 'rule-based':
-          data = await recommendationApi.getRuleBased(profile);
-          break;
-        case 'ontology-based':
-          data = await recommendationApi.getOntologyBased(profile);
-          break;
-        case 'hybrid':
-          data = await recommendationApi.getHybrid(profile);
-          break;
-        default:
-          data = await recommendationApi.getOntologyBased(profile);
-      }
+      const data = await recommendationApi.getRecommendations(profile);
 
       setRecommendations(data.recommendations);
       setRecommendationData(data);
@@ -104,23 +86,6 @@ function App() {
       }
     } catch (err: any) {
       setError("Unable to get recommendations. Please make sure the backend is running.");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGetComparison = async (profile: UserProfile) => {
-    setIsLoading(true);
-    setError(null);
-    setSuccessMessage(null);
-    setViewMode('comparison');
-
-    try {
-      const data = await recommendationApi.getComparison(profile);
-      setComparisonData(data);
-    } catch (err: any) {
-      setError("Unable to get comparison data. Please make sure the backend is running.");
       console.error(err);
     } finally {
       setIsLoading(false);

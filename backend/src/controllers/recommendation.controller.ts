@@ -1,35 +1,62 @@
 import { Request, Response } from 'express';
-import { RecommendationService } from '../services/recommendation.service.js';
+import { OntologyRecommendationService } from '../services/ontology-recommendation.service.js';
+import { Neo4jService } from '../services/neo4j.service.js';
 
-const recommendationService = new RecommendationService();
+const ontologyService = new OntologyRecommendationService();
+const neo4jService = new Neo4jService();
 
 export class RecommendationController {
+
+  // Get all jobs from Neo4j
+  async getAllJobs(req: Request, res: Response) {
+    try {
+      const jobs = await neo4jService.getAllJobs();
+      res.json({ count: jobs.length, jobs });
+    } catch (error) {
+      console.error('Error getting all jobs:', error);
+      res.status(500).json({ error: 'Failed to get jobs' });
+    }
+  }
+
+  // Ontology-based recommendations
   async getRecommendations(req: Request, res: Response) {
     try {
       const profile = req.body;
-      
+
       // Basic validation
       if (!profile.skills || !Array.isArray(profile.skills)) {
         return res.status(400).json({ error: 'Skills array is required' });
       }
-      
-      if (typeof profile.yearsOfExperience !== 'number') {
-        return res.status(400).json({ error: 'Years of experience must be a number' });
-      }
 
-      const recommendations = await recommendationService.getRecommendations(profile);
-      
+      const recommendations = await ontologyService.getOntologyRecommendations(profile);
+
       res.json({
+        type: 'ontology-based',
         recommendations,
         totalCount: recommendations.length,
         profile: {
           name: profile.name,
           currentRole: profile.currentRole
+        },
+        algorithm: {
+          name: 'Ontology-Based Semantic Matching (Neo4j)',
+          weights: {
+            semanticSkills: '50%',
+            experience: '25%',
+            industry: '15%',
+            culture: '10%'
+          },
+          features: [
+            'Semantic skill relationships',
+            'Industry knowledge graphs',
+            'Company culture matching',
+            'Role transferability analysis'
+          ]
         }
       });
     } catch (error) {
-      console.error('Error getting recommendations:', error);
-      res.status(500).json({ error: 'Failed to get recommendations' });
+      console.error('Error getting ontology recommendations:', error);
+      res.status(500).json({ error: 'Failed to get ontology recommendations' });
     }
   }
 }
