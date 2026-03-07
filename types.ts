@@ -14,8 +14,12 @@ export interface JobMatch {
   id: string;
   title: string;
   company: string;
+  companyDetail?: string;
+  companyAddress?: string;
   location: string;
   salaryRange: string;
+  jobDetail?: string;
+  jobProperties?: string;
   industry: string;
   workStyle: string[];
   description: string;

@@ -53,7 +53,37 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
       </div>
 
       <div className="job-description">
-        <p>{job.description}</p>
+        {job.jobDetail ? (
+          <div className="mb-4">
+            <h4 className="font-semibold text-sm text-slate-700 mb-1">Role Description</h4>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.jobDetail}</p>
+          </div>
+        ) : (
+          <p>{job.description}</p>
+        )}
+
+        {job.jobProperties && (
+          <div className="mb-4">
+            <h4 className="font-semibold text-sm text-slate-700 mb-1">Requirements & Properties</h4>
+            <p className="text-sm text-slate-600 whitespace-pre-wrap">{job.jobProperties}</p>
+          </div>
+        )}
+
+        {job.companyDetail && (
+          <div className="mb-2 p-3 bg-slate-50 rounded-lg border border-slate-100">
+            <h4 className="font-semibold text-sm text-slate-700 mb-1">About {job.company}</h4>
+            <p className="text-sm text-slate-600 line-clamp-3 hover:line-clamp-none transition-all">{job.companyDetail}</p>
+            {job.companyAddress && (
+              <p className="text-xs text-slate-500 mt-2 flex items-start gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                {job.companyAddress}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="job-details-grid">
