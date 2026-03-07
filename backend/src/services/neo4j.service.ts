@@ -151,32 +151,34 @@ export class Neo4jService {
     }
 
     /**
-   * Get all jobs from the database
+   * Get all jobs from the database (Ontology adaptation)
    */
     async getAllJobs() {
         const session = getSession();
         try {
             const result = await session.run(`
-        MATCH (j:Job)<-[:POSTED]-(c:Company)
-        OPTIONAL MATCH (j)-[:IN_INDUSTRY]->(i:Industry)
-        OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(s:Skill)
-        WITH j, c, i, collect(s.name) as skills
-        RETURN j.id as id, j.title as title, c.name as company, 
-               j.location as location, j.salaryRange as salaryRange,
-               i.name as industry, j.workStyle as workStyle,
-               j.description as description, skills
-        ORDER BY c.name, j.title
+        MATCH (j:ns0__Job)
+        OPTIONAL MATCH (j)-[:ns0__postedBy]->(c)
+        OPTIONAL MATCH (j)-[:ns0__hasJobType]->(t)
+        OPTIONAL MATCH (j)-[:ns0__requiresSkill]->(s)
+        WITH j, c, t, collect(replace(s.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) as skills
+        RETURN replace(j.uri, "http://www.example.org/job-matching-ontology#Job_", "") as id,
+               "Job " + replace(j.uri, "http://www.example.org/job-matching-ontology#Job_", "") as title,
+               replace(c.uri, "http://www.example.org/job-matching-ontology#Company_", "") as company,
+               replace(t.uri, "http://www.example.org/job-matching-ontology#JobType_", "") as workStyle,
+               skills
+        ORDER BY id
       `);
 
             return result.records.map(record => ({
                 id: record.get('id'),
                 title: record.get('title'),
                 company: record.get('company'),
-                location: record.get('location'),
-                salaryRange: record.get('salaryRange'),
-                industry: record.get('industry'),
-                workStyle: record.get('workStyle'),
-                description: record.get('description'),
+                location: 'Remote', // Fallback
+                salaryRange: 'Negotiable', // Fallback
+                industry: 'Tech', // Fallback
+                workStyle: [record.get('workStyle')],
+                description: 'Decentralized Ontology Job', // Fallback
                 requiredSkills: record.get('skills'),
                 matchScore: 0,
                 matchReasons: [],
@@ -192,90 +194,61 @@ export class Neo4jService {
     }
 
     /**
-     * Find recommendations based on user profile using Graph algorithms
+     * Find recommendations based on user profile using Graph algorithms (Ontology adaptation)
      */
     async findRecommendations(profile: UserProfile) {
         const session = getSession();
         try {
-            // Complex Cypher query to find matching jobs
-            // 1. Direct skill matches
-            // 2. Indirect skill matches (sub-skills, related skills)
-            // 3. Industry matches
-            // 4. Experience check
-
-            // Normalize user role
             const normalizedRole = TextProcessor.normalizeJobTitle(profile.currentRole);
             const roleKeywords = TextProcessor.extractKeywords(profile.currentRole);
 
             const query = `
-        WITH $userSkills as rawUserSkills, $userIndustry as userIndustry, $userExp as userExp, $roleKeywords as roleKeywords
-        
-        // Normalize user skills to lowercase
-        WITH [s IN rawUserSkills | toLower(s)] as userSkills, userIndustry, userExp, [k IN roleKeywords | toLower(k)] as roleKeywords
+        WITH $userSkills as rawUserSkills, $roleKeywords as roleKeywords
+        WITH [s IN rawUserSkills | toLower(s)] as userSkills, [k IN roleKeywords | toLower(k)] as roleKeywords
 
-        // Find jobs
-        MATCH (j:Job)-[:POSTED]-(c:Company)
-        MATCH (j)-[:IN_INDUSTRY]->(i:Industry)
-        
-        // Calculate Skill Score
-        OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(reqSkill:Skill)
-        WITH j, c, i, userSkills, userIndustry, userExp, roleKeywords, collect(reqSkill.name) as requiredSkills
-        
-        // Calculate overlap (Case Insensitive)
-        WITH j, c, i, requiredSkills, userSkills, userIndustry, userExp, roleKeywords,
+        MATCH (j:ns0__Job)
+        OPTIONAL MATCH (j)-[:ns0__postedBy]->(c)
+        OPTIONAL MATCH (j)-[:ns0__hasJobType]->(t)
+        OPTIONAL MATCH (j)-[:ns0__requiresSkill]->(reqSkill)
+
+        WITH j, c, t, userSkills, roleKeywords, collect(replace(reqSkill.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) as requiredSkills
+
+        WITH j, c, t, requiredSkills, userSkills, roleKeywords,
              [skill in requiredSkills WHERE toLower(skill) IN userSkills] as directMatches
-        
-        // Calculate score components
-        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp, roleKeywords,
+
+        WITH j, c, t, requiredSkills, directMatches, userSkills, roleKeywords,
              size(directMatches) as directMatchCount,
              size(requiredSkills) as totalRequired
              
-        // Basic Skill Score (Direct)
-        WITH j, c, i, requiredSkills, directMatches, userSkills, userIndustry, userExp, roleKeywords,
+        WITH j, c, t, requiredSkills, directMatches, userSkills, roleKeywords,
              CASE WHEN totalRequired > 0 THEN toFloat(directMatchCount) / totalRequired ELSE 0 END as skillScore
 
-        // Industry Match
-        WITH j, c, i, requiredSkills, skillScore, userExp, roleKeywords,
-             CASE 
-               WHEN toLower(i.name) = toLower(userIndustry) THEN 1.0
-               WHEN (i)-[:HAS_SUB_INDUSTRY*]->(:Industry {name: userIndustry}) THEN 0.8
-               WHEN (:Industry {name: userIndustry})-[:HAS_SUB_INDUSTRY*]->(i) THEN 0.8
-               ELSE 0.0
-             END as industryScore
+        WITH j, c, t, requiredSkills, skillScore, roleKeywords,
+             replace(j.uri, "http://www.example.org/job-matching-ontology#Job_", "") as baseId
              
-        // Experience Match
-        WITH j, c, i, requiredSkills, skillScore, industryScore, roleKeywords,
-             CASE 
-               WHEN userExp >= j.requiredExperience THEN 1.0
-               WHEN userExp >= j.requiredExperience * 0.7 THEN 0.5
-               ELSE 0.0
-             END as expScore
+        WITH j, c, t, requiredSkills, skillScore, roleKeywords, baseId,
+             "Job " + baseId as title
+             
+        WITH j, c, t, requiredSkills, skillScore, roleKeywords, baseId, title,
+             [word IN roleKeywords WHERE toLower(title) CONTAINS word] as titleMatches
+             
+        WITH j, c, t, requiredSkills, skillScore, roleKeywords, baseId, title,
+             size(titleMatches) > 0 as hasTitleMatch
 
-        // Role Match (New Component)
-        // Check if job title contains any of the user's role keywords
-        WITH j, c, i, requiredSkills, skillScore, industryScore, expScore,
-             [word IN roleKeywords WHERE toLower(j.title) CONTAINS word] as titleMatches
-        
-        WITH j, c, i, requiredSkills, skillScore, industryScore, expScore,
-             size(titleMatches) > 0 as hasTitleMatch,
-             size(titleMatches) as titleMatchCount
+        WITH j, c, t, requiredSkills, skillScore, baseId, title, hasTitleMatch,
+             (skillScore * 0.8) + (CASE WHEN hasTitleMatch THEN 0.2 ELSE 0.0 END) as matchScore
 
-        // Final Weighted Score
-        // Added role match bonus (0.2)
-        WITH j, c, i, requiredSkills, skillScore, industryScore, expScore, hasTitleMatch,
-             (skillScore * 0.4) + (industryScore * 0.2) + (expScore * 0.2) + (CASE WHEN hasTitleMatch THEN 0.2 ELSE 0.0 END) as matchScore
+        WHERE matchScore > 0.0
         
-        WHERE matchScore > 0.1 // Lower threshold to be more inclusive
-        
-        RETURN j.id as id, j.title as title, c.name as company, 
-               j.location as location, j.salaryRange as salaryRange,
-               i.name as industry, j.workStyle as workStyle,
-               j.description as description,
+        RETURN baseId as id, title as title, replace(c.uri, "http://www.example.org/job-matching-ontology#Company_", "") as company, 
+               "Unknown" as location, "Unknown" as salaryRange,
+               "IT" as industry, replace(t.uri, "http://www.example.org/job-matching-ontology#JobType_", "") as workStyle,
+               "Matched via semantic requirements" as description,
                matchScore * 100 as matchScore,
                requiredSkills,
                skillScore * 100 as skillSemanticScore,
-               industryScore * 100 as industrySemanticScore,
-               expScore * 100 as experienceScore,
+               100 as industrySemanticScore,
+               100 as experienceScore,
                hasTitleMatch
         ORDER BY matchScore DESC
         LIMIT 10
@@ -283,8 +256,6 @@ export class Neo4jService {
 
             const result = await session.run(query, {
                 userSkills: profile.skills,
-                userIndustry: profile.preferredIndustry,
-                userExp: profile.yearsOfExperience,
                 roleKeywords: roleKeywords
             });
 
@@ -295,13 +266,12 @@ export class Neo4jService {
                 location: record.get('location'),
                 salaryRange: record.get('salaryRange'),
                 industry: record.get('industry'),
-                workStyle: record.get('workStyle'),
+                workStyle: [record.get('workStyle')],
                 description: record.get('description'),
                 matchScore: record.get('matchScore'),
                 requiredSkills: record.get('requiredSkills'),
                 skillSemanticScore: record.get('skillSemanticScore'),
                 industrySemanticScore: record.get('industrySemanticScore'),
-                // Add missing fields to match interface
                 matchReasons: this.generateReasons(
                     record.get('skillSemanticScore'),
                     record.get('industrySemanticScore'),
@@ -309,7 +279,7 @@ export class Neo4jService {
                     record.get('hasTitleMatch')
                 ),
                 experienceMatch: record.get('experienceScore') >= 70,
-                ontologyReasons: ['Matched via Neo4j Graph Analysis']
+                ontologyReasons: ['Matched via Neo4j Graph Analysis (RDF)']
             }));
 
         } catch (error) {
