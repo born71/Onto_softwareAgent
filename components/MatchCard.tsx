@@ -170,7 +170,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
               </div>
 
               <div>
-                <h4 className="section-title">Work Style</h4>
+                <h4 className="section-title">TYPE</h4>
                 <div className="tags-container">
                   {job.workStyle.map((style, idx) => (
                     <span key={idx} className="work-style-tag">

@@ -272,7 +272,7 @@ function App() {
                         <div className="space-y-2 text-sm text-slate-600">
                           <p><span className="font-medium">Experience:</span> {profile.yearsOfExperience} years</p>
                           <p><span className="font-medium">Industry:</span> {profile.preferredIndustry}</p>
-                          <p><span className="font-medium">Work Style:</span> {profile.workStyle}</p>
+                          <p><span className="font-medium">TYPE:</span> {profile.workStyle}</p>
                           {profile.skills.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-3">
                               {profile.skills.map((skill, idx) => (

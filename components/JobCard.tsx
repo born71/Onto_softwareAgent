@@ -92,7 +92,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
           <p className="detail-value">{job.salaryRange}</p>
         </div>
         <div>
-          <span className="detail-label">Work Style</span>
+          <span className="detail-label">Type</span>
           <p className="detail-value">{job.workStyle.join(', ')}</p>
         </div>
         <div>
