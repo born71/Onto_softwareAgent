@@ -68,7 +68,7 @@ export class Neo4jService {
 
             const query = `
         WITH $userSkills as rawUserSkills, $roleKeywords as roleKeywords
-        WITH [s IN rawUserSkills | toLower(s)] as userSkills, [k IN roleKeywords | toLower(k)] as roleKeywords
+        WITH rawUserSkills, roleKeywords, [s IN rawUserSkills | toLower(s)] as userSkills, [k IN roleKeywords | toLower(k)] as lowerRoleKeywords
 
         MATCH (j:ns0__Job)
 
@@ -76,46 +76,51 @@ export class Neo4jService {
         OPTIONAL MATCH (j)-[:ns0__requiresSkill]->(reqSkill)
         OPTIONAL MATCH (j)-[:ns0__requiresSkillGroup]->(reqGroup)
 
-        WITH j, userSkills, roleKeywords,
-             collect(DISTINCT reqSkill) as reqSkills,
-             collect(DISTINCT reqGroup) as reqGroups
+        WITH j, rawUserSkills, roleKeywords,
+             collect(DISTINCT toLower(replace(reqSkill.uri, "http://www.example.org/job-matching-ontology#Skill_", ""))) as reqSkills,
+             collect(DISTINCT toLower(replace(reqGroup.uri, "http://www.example.org/job-matching-ontology#SkillGroup_", ""))) as reqGroups,
+             collect(DISTINCT replace(reqSkill.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) as rawReqSkills
 
-        // 2. Evaluate Direct Matches
-        WITH j, userSkills, roleKeywords, reqSkills, reqGroups,
-             [node in reqSkills WHERE toLower(replace(node.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) IN userSkills] as directMatches
+        // 2. Iterate through each User Skill
+        UNWIND rawUserSkills as rawUserSkill
+        WITH j, reqSkills, reqGroups, rawReqSkills, roleKeywords, toLower(replace(replace(rawUserSkill, " ", "_"), ".", "_")) as userSkillStr
 
-        // 3. Evaluate SkillGroup Matches (User has skill that belongs to a required group)
-        OPTIONAL MATCH (userSkillNode:ns0__Resource)-[:ns0__hasSkillGroup]->(groupNode)
-        WHERE groupNode IN reqGroups AND toLower(replace(userSkillNode.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) IN userSkills
-        WITH j, userSkills, roleKeywords, reqSkills, reqGroups, directMatches,
-             collect(DISTINCT groupNode) as matchedGroups
+        // 3. Lookup Ontology Maps for the User Skill
+        OPTIONAL MATCH (us:ns0__Skill) WHERE toLower(replace(us.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) = userSkillStr
+        OPTIONAL MATCH (us)-[:ns0__isBasedOnLanguage]->(bl)
+        OPTIONAL MATCH (us)-[:ns0__hasSkillGroup]->(sg)
 
-        // 4. Evaluate Language Matches (User has framework based on a required language)
-        OPTIONAL MATCH (frameworkNode:ns0__Resource)-[:ns0__isBasedOnLanguage]->(langNode)
-        WHERE langNode IN reqSkills AND toLower(replace(frameworkNode.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) IN userSkills
-        WITH j, userSkills, roleKeywords, reqSkills, reqGroups, directMatches, matchedGroups,
-             collect(DISTINCT langNode) as matchedLanguages
+        WITH j, reqSkills, reqGroups, rawReqSkills, roleKeywords, userSkillStr,
+             toLower(replace(bl.uri, "http://www.example.org/job-matching-ontology#Skill_", "")) as blId,
+             toLower(replace(sg.uri, "http://www.example.org/job-matching-ontology#SkillGroup_", "")) as sgId
 
-        // 5. Calculate Score Weights
-        WITH j, roleKeywords, reqSkills, reqGroups,
-             size(directMatches) as directCount, size(matchedGroups) as groupCount, size(matchedLanguages) as langCount,
-             (size(directMatches) * 1.0) + (size(matchedLanguages) * 0.8) + (size(matchedGroups) * 0.5) as totalPoints,
-             [node in reqSkills | replace(node.uri, "http://www.example.org/job-matching-ontology#Skill_", "")] as rawReqSkills
+        // 4. Calculate If/Elif Priority Score
+        WITH j, reqSkills, reqGroups, rawReqSkills, roleKeywords, userSkillStr, blId, sgId,
+             CASE
+               WHEN userSkillStr IN reqSkills THEN 1.0
+               WHEN blId IS NOT NULL AND blId IN reqSkills THEN 0.6
+               WHEN sgId IS NOT NULL AND sgId IN reqGroups THEN 0.2
+               ELSE 0.0
+             END as skillScoreIncrement,
+             CASE WHEN userSkillStr IN reqSkills THEN 1 ELSE 0 END as directMatch,
+             CASE WHEN blId IS NOT NULL AND blId IN reqSkills AND NOT userSkillStr IN reqSkills THEN 1 ELSE 0 END as langMatch,
+             CASE WHEN sgId IS NOT NULL AND sgId IN reqGroups AND NOT userSkillStr IN reqSkills AND NOT (blId IS NOT NULL AND blId IN reqSkills) THEN 1 ELSE 0 END as groupMatch
 
-        WITH j, roleKeywords, rawReqSkills, directCount, groupCount, langCount, totalPoints,
-             size(reqSkills) + (size(reqGroups) * 0.5) as maxPoints
+        // 5. Aggregate back to Job level
+        WITH j, roleKeywords, rawReqSkills, 
+             sum(skillScoreIncrement) as totalSkillScore,
+             sum(directMatch) > 0 as hasDirectMatch,
+             sum(langMatch) > 0 as hasLangMatch,
+             sum(groupMatch) > 0 as hasGroupMatch
 
-        WITH j, roleKeywords, rawReqSkills, directCount, groupCount, langCount,
-             CASE WHEN maxPoints > 0 THEN totalPoints / maxPoints ELSE 0 END as skillScoreBase
-
-        WITH j, roleKeywords, rawReqSkills, directCount, groupCount, langCount,
-             CASE WHEN skillScoreBase > 1.0 THEN 1.0 ELSE skillScoreBase END as skillScore
+        WITH j, roleKeywords, rawReqSkills, totalSkillScore, hasDirectMatch, hasLangMatch, hasGroupMatch,
+             totalSkillScore as skillScore
 
         // 6. Gather additional metadata
         OPTIONAL MATCH (j)-[:ns0__postedBy]->(c)
         OPTIONAL MATCH (j)-[:ns0__hasJobType]->(t)
 
-        WITH j, c, t, roleKeywords, rawReqSkills, skillScore, directCount, groupCount, langCount,
+        WITH j, c, t, roleKeywords, rawReqSkills, skillScore, totalSkillScore, hasDirectMatch, hasLangMatch, hasGroupMatch,
              replace(j.uri, "http://www.example.org/job-matching-ontology#Job_", "") as baseId,
              CASE WHEN c.ns0__hasCompanyName IS NOT NULL THEN c.ns0__hasCompanyName ELSE replace(c.uri, "http://www.example.org/job-matching-ontology#Company_", "") END as companyName,
              c.ns0__hasCompanyDetail as companyDetail,
@@ -126,34 +131,36 @@ export class Neo4jService {
              j.ns0__hasJobProperties as jobProperties,
              replace(t.uri, "http://www.example.org/job-matching-ontology#JobType_", "") as jobType
              
-        WITH j, roleKeywords, rawReqSkills, skillScore, directCount, groupCount, langCount, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType,
+        WITH j, roleKeywords, rawReqSkills, totalSkillScore, skillScore, hasDirectMatch, hasLangMatch, hasGroupMatch, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType,
              "Job " + baseId as title
              
-        WITH j, rawReqSkills, skillScore, directCount, groupCount, langCount, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title,
+        WITH j, rawReqSkills, totalSkillScore, skillScore, hasDirectMatch, hasLangMatch, hasGroupMatch, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title,
              [word IN roleKeywords WHERE toLower(title) CONTAINS word] as titleMatches
              
-        WITH rawReqSkills, skillScore, directCount, groupCount, langCount, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title,
+        WITH rawReqSkills, totalSkillScore, skillScore, hasDirectMatch, hasLangMatch, hasGroupMatch, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title,
              size(titleMatches) > 0 as hasTitleMatch
 
-        // Combine Final Score
-        WITH rawReqSkills, skillScore, directCount, groupCount, langCount, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title, hasTitleMatch,
-             (skillScore * 0.8) + (CASE WHEN hasTitleMatch THEN 0.2 ELSE 0.0 END) as matchScore
+        // Combine Final Score (Pure point accumulation)
+        WITH rawReqSkills, totalSkillScore, skillScore, hasDirectMatch, hasLangMatch, hasGroupMatch, baseId, companyName, companyDetail, companyAddress, jobLocation, jobSalary, jobDetail, jobProperties, jobType, title, hasTitleMatch,
+             skillScore + (CASE WHEN hasTitleMatch THEN 0.5 ELSE 0.0 END) as matchScore
 
         WHERE matchScore > 0.0
+
         
         RETURN baseId as id, title as title, companyName as company, companyDetail, companyAddress,
                jobLocation as location, jobSalary as salaryRange, jobDetail, jobProperties,
                "IT" as industry, CASE WHEN jobType IS NULL THEN "FullTime" ELSE jobType END as workStyle,
                "Matched via semantic requirements" as description,
-               matchScore * 100 as matchScore,
+               matchScore as matchScore,
                rawReqSkills as requiredSkills,
-               skillScore * 100 as skillSemanticScore,
+               totalSkillScore as rawSkillScorePoints,
+               skillScore as skillSemanticScore,
                100 as industrySemanticScore,
                100 as experienceScore,
                hasTitleMatch,
-               directCount > 0 as hasDirectMatch,
-               groupCount > 0 as hasGroupMatch,
-               langCount > 0 as hasLangMatch
+               hasDirectMatch,
+               hasGroupMatch,
+               hasLangMatch
         ORDER BY matchScore DESC
         LIMIT 10
       `;
@@ -178,6 +185,7 @@ export class Neo4jService {
                 description: record.get('description'),
                 matchScore: record.get('matchScore'),
                 requiredSkills: record.get('requiredSkills'),
+                rawSkillScorePoints: record.get('rawSkillScorePoints'),
                 skillSemanticScore: record.get('skillSemanticScore'),
                 industrySemanticScore: record.get('industrySemanticScore'),
                 matchReasons: this.generateReasons(
@@ -211,7 +219,7 @@ export class Neo4jService {
         hasLangMatch?: boolean
     ): string[] {
         const reasons = [];
-        if (skillScore > 70) reasons.push('Strong skill match');
+        if (skillScore > 1.5) reasons.push('Strong skill match');
         if (industryScore > 80) reasons.push('Industry alignment');
         if (expScore > 90) reasons.push('Experience requirement met');
         if (hasTitleMatch) reasons.push('Job title matches your current role');
