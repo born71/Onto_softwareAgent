@@ -34,9 +34,9 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
     // But for the SVG stroke, it expects a class that sets the stroke color.
     // In my CSS I added .score-circle-fg.score-emerald etc.
     // So I will return 'score-emerald', 'score-indigo', etc.
-    if (score >= 90) return 'score-emerald';
-    if (score >= 80) return 'score-indigo';
-    if (score >= 70) return 'score-amber';
+    if (score >= 3.0) return 'score-emerald';
+    if (score >= 2.0) return 'score-indigo';
+    if (score >= 1.0) return 'score-amber';
     return 'score-slate';
   };
 
@@ -49,7 +49,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
 
   const radius = 20;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (job.matchScore / 100) * circumference;
+  const offset = circumference - (Math.min(1, job.matchScore / 4.0)) * circumference;
 
   return (
     <div className="match-card">
@@ -117,7 +117,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                 />
               </svg>
               <div className="score-text">
-                {(job.matchScore).toFixed(2)}%
+                {(job.matchScore).toFixed(1)}
               </div>
             </div>
             <span className="score-label">Match</span>

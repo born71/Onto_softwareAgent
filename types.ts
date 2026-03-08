@@ -26,6 +26,12 @@ export interface JobMatch {
   matchScore: number;
   matchReasons: string[];
   requiredSkills: string[];
+  rawSkillScorePoints?: number;
+  skillSemanticScore?: number;
+  industrySemanticScore?: number;
+  hasDirectMatch?: boolean;
+  hasGroupMatch?: boolean;
+  hasLangMatch?: boolean;
   experienceMatch: boolean;
   companySize?: string;
   benefits?: string[];

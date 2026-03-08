@@ -9,14 +9,14 @@ interface JobCardProps {
 
 const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
   const getMatchScoreClass = (score: number) => {
-    if (score >= 71) return 'high';
-    if (score >= 26) return 'medium';
+    if (score >= 3.0) return 'high';
+    if (score >= 1.5) return 'medium';
     return 'low';
   };
 
   const getMatchColor = (score: number) => {
-    if (score >= 71) return '#10b981'; // green-500
-    if (score >= 26) return '#facc15'; // yellow-400
+    if (score >= 3.0) return '#10b981'; // green-500
+    if (score >= 1.5) return '#facc15'; // yellow-400
     return '#ef4444'; // red-500
   };
 
@@ -36,13 +36,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
         <div className="match-score-wrapper">
           <div className="match-score-container">
             <span className={`match-percentage ${getMatchScoreClass(job.matchScore)}`}>
-              {(job.matchScore).toFixed(2)}%
+              {(job.matchScore).toFixed(1)} Pts
             </span>
             <div className="match-ring-outer">
               <div
                 className="match-ring-inner"
                 style={{
-                  background: `conic-gradient(${getMatchColor(job.matchScore)} ${job.matchScore * 3.6}deg, #f1f5f9 0deg)`
+                  background: `conic-gradient(${getMatchColor(job.matchScore)} ${Math.min(360, (job.matchScore / 4.0) * 360)}deg, #f1f5f9 0deg)`
                 }}
               >
                 <div className="match-dot"></div>

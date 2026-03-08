@@ -38,21 +38,6 @@ export class RecommendationController {
           name: profile.name,
           currentRole: profile.currentRole
         },
-        algorithm: {
-          name: 'Ontology-Based Semantic Matching (Neo4j)',
-          weights: {
-            semanticSkills: '50%',
-            experience: '25%',
-            industry: '15%',
-            culture: '10%'
-          },
-          features: [
-            'Semantic skill relationships',
-            'Industry knowledge graphs',
-            'Company culture matching',
-            'Role transferability analysis'
-          ]
-        }
       });
     } catch (error) {
       console.error('Error getting ontology recommendations:', error);
