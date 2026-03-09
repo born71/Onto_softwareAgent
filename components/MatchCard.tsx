@@ -135,19 +135,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ job, rank }) => {
                 <p className="description-text">{job.description}</p>
               </div>
 
-              {job.matchReasons.length > 0 && (
-                <div>
-                  <h4 className="section-title">Why It's a Match</h4>
-                  <ul className="reasons-list">
-                    {job.matchReasons.map((reason, idx) => (
-                      <li key={idx} className="reason-item">
-                        <span className="reason-bullet">•</span>
-                        {reason}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+
 
               <div className="experience-match">
                 <span className="experience-label">Experience Match:</span>

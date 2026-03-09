@@ -113,20 +113,6 @@ const JobCard: React.FC<JobCardProps> = ({ job, rank }) => {
         )}
       </div>
 
-      {job.matchReasons.length > 0 && (
-        <div className="match-reasons">
-          <span className="match-reasons-title">Why This Matches</span>
-          <ul className="match-reasons-list">
-            {job.matchReasons.map((reason, index) => (
-              <li key={index} className="match-reason-item">
-                <span className="success-bullet">•</span>
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       <div className="job-footer">
         <div className="job-footer-section">
           <span className="detail-label">Required Skills</span>

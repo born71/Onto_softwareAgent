@@ -74,12 +74,31 @@ def get_skill_info(skill_uri):
                 str(row.group) if row.group else None)
     return None, None
 
+def get_base_lang_of_skill(skill_uri):
+    """ฟังก์ชันช่วยหา Base Language ของ Skill ใดๆ (ใช้สำหรับ Sibling Check)"""
+    query = f"""
+    PREFIX jm: <http://www.example.org/job-matching-ontology#>
+    SELECT ?basedOn WHERE {{ <{skill_uri}> jm:isBasedOnLanguage ?basedOn . }}
+    """
+    for row in g.query(query):
+        return str(row.basedOn)
+    return None
+
 def test_job_matching(user_skills):
     # เตรียมข้อมูล
     skill_map = build_skill_map()
     job_data_store = get_job_data()
     job_scores = defaultdict(float)
     matched_reasons = defaultdict(list) # เก็บเหตุผลว่า match เพราะอะไร
+
+    # Cache Base Language ของทุก Skill ที่ Job ต้องการเพื่อความเร็ว
+    # Map: JobURI -> Set of BaseLangs needed
+    job_needed_bases = defaultdict(set)
+    for job_uri, data in job_data_store.items():
+        for s_uri in data["skills"]:
+            base = get_base_lang_of_skill(s_uri)
+            if base:
+                job_needed_bases[job_uri].add(base)
 
     print(f"\nUser Skills: {user_skills}")
     
@@ -103,21 +122,28 @@ def test_job_matching(user_skills):
         for job_uri, data in job_data_store.items():
             score_increment = 0.0
             reasons = []
-
-            # Match ตรงๆ (Weight 1.0)
+            
+            # Logic: Match แบบใดแบบหนึ่งที่ดีที่สุด (Direct > Base > Sibling > Group)
+            
+            # 1. Match ตรงๆ (Weight 1.0)
             if skill_uri in data["skills"]:
                 score_increment = 1.0
                 reasons.append(f"Direct Match: {real_label}")
             
-            # Match ผ่าน Base Language (Weight 0.6)
-            # เช่น Job ต้องการ JS เรามี React (React -> basedOn JS)
-            # เราจะได้คะแนน 0.6 เพราะเรารู้ Framework ของภาษานั้น
+            # 2. Match ผ่าน Base Language (Weight 0.6) - เรามี Framework, งานขอ Base
+            # เช่น เรามี React (basedOn JS), งานขอ JS
             elif based_on_uri and based_on_uri in data["skills"]:
                 score_increment = 0.6
-                base_name = based_on_uri.split('_')[-1] # ดึงชื่อจาก URI คร่าวๆ
                 reasons.append(f"Base Lang Match: Job needs Base of {real_label}")
+
+            # 3. Sibling Match (Weight 0.4) - เรามี Framework A, งานขอ Framework B (แต่ Base เดียวกัน)
+            # เช่น เรามี React (basedOn JS), งานขอ Next.js (basedOn JS)
+            # เงื่อนไข: Base ของเราต้องไปตรงกับ Base ของ Skill ที่งานต้องการ
+            elif based_on_uri and based_on_uri in job_needed_bases[job_uri]:
+                score_increment = 0.4
+                reasons.append(f"Sibling Match: {real_label} shares base with job req")
                 
-            # Match ผ่าน Group (Weight 0.2)
+            # 4. Match ผ่าน Group (Weight 0.2)
             # เช่น Job ต้องการ Frontend เรามี React (React -> Group Frontend)
             elif group_uri and group_uri in data["groups"]:
                 score_increment = 0.2
@@ -143,7 +169,7 @@ def test_job_matching(user_skills):
     print(f"Top 5 Matched Jobs (Total matches: {len(sorted_jobs)})")
     print("="*60)
 
-    for i, (job_uri, score) in enumerate(sorted_jobs[:5], 1):
+    for i, (job_uri, score) in enumerate(sorted_jobs[:10], 1):
         job_info = job_data_store[job_uri]
         print(f"{i}. {job_info['label']}")
         print(f"   Score: {score:.1f}")
@@ -160,6 +186,7 @@ def test_job_matching(user_skills):
 
 if __name__ == "__main__":
     # ลองเปลี่ยน Skill เพื่อทดสอบ
-    my_skills = ["Python", "Kubernetes", "docker"]
+    my_skills = ["docker", "kubernetes"]
+    # my_skills = ["Flutter", "Dart"] 
     
     test_job_matching(my_skills)
